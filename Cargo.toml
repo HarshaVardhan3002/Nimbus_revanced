@@ -1,0 +1,23 @@
+[workspace]
+members = ["crates/system", "app/src-tauri"]
+resolver = "3"
+
+[workspace.package]
+version = "1.0.0"
+edition = "2024"
+license = "MIT"
+
+[profile.release]
+lto = "thin"
+codegen-units = 4
+strip = true
+
+# The byte search behind file search, optimised even in debug builds: unoptimised, it
+# is fifty times slower and every key press would wait on it.
+[profile.dev.package.memchr]
+opt-level = 3
+
+# Screenshots for models that can see: scaled and compressed to JPEG. Unoptimised, one
+# frame takes about a second of a core.
+[profile.dev.package.image]
+opt-level = 3

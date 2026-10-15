@@ -1,0 +1,16 @@
+target/
+node_modules/
+dist/
+*.log
+# Design review screenshots and the internal product brief: real data from the
+# builder's machine, kept local.
+.impeccable/
+PRODUCT.md
+.env
+.env.*
+# Design review screenshots and the internal product brief: real data from the
+# builder's machine, kept local.
+.impeccable/
+PRODUCT.md
+.env
+.env.*

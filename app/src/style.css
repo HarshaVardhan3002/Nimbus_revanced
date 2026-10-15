@@ -1,0 +1,379 @@
+/* Design tokens. The six colour roles come from the wallpaper on screen (see
+   lib/palette.svelte.ts) and drift to new values over 0.8 s, so the island always
+   wears the desktop's own colours. Registered as <color> so they can transition. */
+
+@property --accent {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: #a9bcd6;
+}
+@property --ink {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: #0e1724;
+}
+@property --chest {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: #c7b3f2;
+}
+@property --done {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: #8ccf92;
+}
+@property --ember {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: #ebcf6e;
+}
+@property --panel {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: #0a0c10;
+}
+
+:root {
+  color-scheme: dark;
+
+  /* The island is a piece of the screen's bezel, so its root is true black. */
+  --bezel: #000;
+  --text: #f3f4f7;
+  --text-2: #aab0bd;
+  --text-3: #8a91a0;
+  --bad: #ff8a91;
+
+  /* Surfaces are white at low alpha over the panel, so they pick up its tint. */
+  --s1: rgb(255 255 255 / 0.05);
+  --s2: rgb(255 255 255 / 0.075);
+  --s3: rgb(255 255 255 / 0.105);
+  --s4: rgb(255 255 255 / 0.15);
+  --line: rgb(255 255 255 / 0.08);
+
+  --accent-12: color-mix(in oklab, var(--accent) 12%, transparent);
+  --accent-20: color-mix(in oklab, var(--accent) 20%, transparent);
+  --accent-35: color-mix(in oklab, var(--accent) 35%, transparent);
+  /* The accent as text on the dark panel: lifted towards white to keep 4.5:1. */
+  --accent-text: color-mix(in oklab, var(--accent) 78%, white);
+
+  /* One motion grammar. Whatever travels or changes size rides a spring; whatever
+     appears fades up 8 px; colour drifts. Springs are damped oscillators sampled
+     into linear() (zeta 0.76: 2.5 % overshoot; zeta 0.66: 6 % for small parts). */
+  --spring: linear(0, 0.0157, 0.0571, 0.1166, 0.1879, 0.2661, 0.347, 0.4276, 0.5056, 0.5792, 0.6473, 0.7092, 0.7646, 0.8135, 0.8559, 0.8922, 0.9228, 0.9482, 0.9689, 0.9854, 0.9983, 1.0081, 1.0152, 1.0201, 1.0232, 1.0249, 1.0254, 1.025, 1.0239, 1.0224, 1.0206, 1.0186, 1.0166, 1.0145, 1.0126, 1.0107, 1.009, 1.0074, 1.006, 1.0047, 1.0037, 1.0027, 1.002, 1.0013, 1);
+  --spring-pop: linear(0, 0.0249, 0.0894, 0.1799, 0.2851, 0.396, 0.506, 0.61, 0.7048, 0.7882, 0.8594, 0.9182, 0.9652, 1.0013, 1.0277, 1.0457, 1.0568, 1.0622, 1.0632, 1.0609, 1.0564, 1.0504, 1.0436, 1.0366, 1.0297, 1.0232, 1.0174, 1.0123, 1.008, 1.0044, 1.0016, 0.9995, 0.9979, 0.9969, 0.9963, 0.996, 0.996, 0.9962, 0.9965, 0.9969, 1);
+  --out: cubic-bezier(0.16, 1, 0.3, 1);
+  --t-move: 620ms;
+  --t-pop: 460ms;
+  --t-fade: 200ms;
+
+  --ui: "Mona Sans Variable", "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
+  --display: "Hubot Sans Variable", "Mona Sans Variable", "Segoe UI Variable Display", system-ui, sans-serif;
+
+  font-family: var(--ui);
+  font-size: 13px;
+  line-height: 1.35;
+  color: var(--text);
+  -webkit-font-smoothing: antialiased;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+
+  transition:
+    --accent 0.8s var(--out),
+    --ink 0.8s var(--out),
+    --chest 0.8s var(--out),
+    --done 0.8s var(--out),
+    --ember 0.8s var(--out),
+    --panel 0.8s var(--out);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --spring: var(--out);
+    --spring-pop: var(--out);
+    --t-move: 160ms;
+    --t-pop: 140ms;
+  }
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+}
+
+/* The window is transparent: only the island paints. */
+html,
+body {
+  height: 100%;
+  background: transparent;
+  overflow: hidden;
+  user-select: none;
+  cursor: default;
+}
+
+button,
+input {
+  font: inherit;
+  color: inherit;
+  letter-spacing: inherit;
+}
+
+button {
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: default;
+}
+
+button:disabled {
+  cursor: not-allowed;
+}
+
+input {
+  border: 0;
+  outline: 0;
+  background: none;
+  min-width: 0;
+  user-select: text;
+}
+
+input::placeholder {
+  color: var(--text-3);
+  opacity: 1;
+}
+
+img {
+  display: block;
+}
+
+/* Browser surfaces wear the palette too. */
+::selection {
+  background: var(--accent-35);
+  color: var(--text);
+}
+
+input,
+textarea,
+[contenteditable] {
+  caret-color: var(--accent);
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+:focus:not(:focus-visible) {
+  outline: none;
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgb(255 255 255 / 0.16) transparent;
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgb(255 255 255 / 0.16);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* Figures that update in place keep their width. */
+.num {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+}
+
+/* Hubot Sans, a little wide: the voice of every big figure. */
+.display {
+  font-family: var(--display);
+  font-stretch: 112%;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.meta {
+  font-size: 12px;
+  color: var(--text-2);
+}
+
+.faint {
+  color: var(--text-3);
+}
+
+.ellipsis {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+/* Shared parts. Pages compose these; anything one page needs alone stays scoped. */
+
+.card {
+  background: var(--s1);
+  border-radius: 18px;
+  box-shadow: inset 0 0 0 1px var(--line);
+}
+
+.btn {
+  height: 32px;
+  padding: 0 14px;
+  border-radius: 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  flex: none;
+  font-weight: 560;
+  white-space: nowrap;
+  background: var(--s2);
+  transition:
+    background-color var(--t-fade) var(--out),
+    color var(--t-fade) var(--out),
+    scale var(--t-pop) var(--spring-pop);
+}
+.btn:hover:not(:disabled) {
+  background: var(--s3);
+}
+.btn:active:not(:disabled) {
+  scale: 0.96;
+}
+.btn:disabled {
+  opacity: 0.45;
+}
+.btn.primary {
+  background: var(--accent);
+  color: var(--ink);
+}
+.btn.primary:hover:not(:disabled) {
+  background: color-mix(in oklab, var(--accent) 86%, white);
+}
+.btn.quiet {
+  background: none;
+  color: var(--text-2);
+}
+.btn.quiet:hover:not(:disabled) {
+  background: var(--s2);
+  color: var(--text);
+}
+.btn.danger {
+  color: var(--bad);
+}
+.btn.small {
+  height: 28px;
+  padding: 0 11px;
+  border-radius: 14px;
+  font-size: 12px;
+}
+
+.icon-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 16px;
+  display: grid;
+  place-items: center;
+  flex: none;
+  color: var(--text-2);
+  transition:
+    background-color var(--t-fade) var(--out),
+    color var(--t-fade) var(--out),
+    scale var(--t-pop) var(--spring-pop);
+}
+.icon-btn:hover:not(:disabled) {
+  background: var(--s2);
+  color: var(--text);
+}
+.icon-btn:active:not(:disabled) {
+  scale: 0.92;
+}
+.icon-btn:disabled {
+  opacity: 0.4;
+}
+
+.field {
+  height: 36px;
+  border-radius: 18px;
+  padding: 0 14px;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  background: var(--s2);
+  color: var(--text-2);
+  transition: box-shadow var(--t-fade) var(--out);
+}
+.field:focus-within {
+  box-shadow: inset 0 0 0 1.5px var(--accent-35);
+}
+.field input {
+  flex: 1;
+  min-width: 0;
+  width: 100%;
+  height: 100%;
+  color: var(--text);
+}
+
+.chip {
+  height: 28px;
+  padding: 0 12px;
+  border-radius: 14px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex: none;
+  font-size: 12px;
+  font-weight: 560;
+  color: var(--text-2);
+  background: var(--s1);
+  transition:
+    background-color var(--t-fade) var(--out),
+    color var(--t-fade) var(--out);
+}
+.chip:hover {
+  color: var(--text);
+  background: var(--s2);
+}
+.chip[aria-pressed="true"],
+.chip[aria-checked="true"] {
+  color: var(--accent-text);
+  background: var(--accent-20);
+}
+
+.empty {
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 8px;
+  text-align: center;
+  color: var(--text-2);
+  text-wrap: balance;
+}
+.empty strong {
+  color: var(--text);
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.error {
+  color: var(--bad);
+  font-size: 12px;
+}

@@ -1,0 +1,1 @@
+{"default":{"identifier":"default","description":"What the island's web view may call","local":true,"windows":["island","overlay"],"permissions":["core:default","core:window:allow-set-focus","dialog:default"]}}

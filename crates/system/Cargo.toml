@@ -1,0 +1,50 @@
+[package]
+name = "nimbus-system"
+description = "Cross-platform system controls: volume, media, brightness, radios, theme, wallpaper, apps, clipboard, resource monitor"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+serde = { version = "1", features = ["derive"] }
+sysinfo = "0.39"
+wallpaper = "3.2"
+base64 = "0.22"
+thiserror = "2"
+serde_json = "1"
+
+[target.'cfg(windows)'.dependencies]
+brightness = { version = "0.8", default-features = false }
+windows = { version = "0.62", features = [
+  "Devices_Bluetooth",
+  "Devices_Enumeration",
+  "Devices_Radios",
+  "Foundation",
+  "Foundation_Collections",
+  "Media_Control",
+  "Networking_Connectivity",
+  "Storage_Streams",
+  "Win32_Devices_FunctionDiscovery",
+  "Win32_Foundation",
+  "Win32_Graphics_Dxgi",
+  "Win32_Graphics_Dxgi_Common",
+  "Win32_Graphics_Gdi",
+  "Win32_Media_Audio",
+  "Win32_Media_Audio_Endpoints",
+  "Win32_Storage_FileSystem",
+  "Win32_System_Com",
+  "Win32_System_Com_StructuredStorage",
+  "Win32_System_DataExchange",
+  "Win32_System_Memory",
+  "Win32_System_Performance",
+  "Win32_System_Power",
+  "Win32_System_Registry",
+  "Win32_System_Shutdown",
+  "Win32_System_Threading",
+  "Win32_System_Variant",
+  "Win32_UI_Input_KeyboardAndMouse",
+  "Win32_UI_Shell",
+  "Win32_UI_Shell_Common",
+  "Win32_UI_Shell_PropertiesSystem",
+  "Win32_UI_WindowsAndMessaging",
+] }
