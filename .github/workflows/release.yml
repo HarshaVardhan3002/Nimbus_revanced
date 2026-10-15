@@ -19,7 +19,7 @@ jobs:
         include:
           - os: windows-latest
             args: ""
-          - os: ubuntu-22.04
+          - os: ubuntu-24.04
             args: ""
           - os: macos-latest
             args: "--target universal-apple-darwin"
