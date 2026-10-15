@@ -307,7 +307,9 @@ mod imp {
     use windows::Win32::System::Com::{CLSCTX_INPROC_SERVER, COINIT_MULTITHREADED, CoCreateInstance, CoInitializeEx};
     use windows::Win32::System::Variant::{VARIANT, VT_BOOL, VT_BSTR, VT_I4, VariantClear};
     use windows::Win32::UI::Accessibility::*;
-    use windows::Win32::UI::WindowsAndMessaging::{GetClassNameW, GetForegroundWindow, IsWindow, SetForegroundWindow};
+    use windows::Win32::UI::WindowsAndMessaging::{
+        GA_ROOT, GetAncestor, GetClassNameW, GetForegroundWindow, GetWindowThreadProcessId, IsWindow, SetForegroundWindow, WindowFromPoint,
+    };
     use windows::core::BSTR;
 
     struct Win {
@@ -390,6 +392,23 @@ mod imp {
         });
         tx.lock().send(job).map_err(|_| "the hands stopped working".to_string())?;
         rrx.recv_timeout(Duration::from_secs(30)).map_err(|_| "the app did not answer in time".to_string())?
+    }
+
+    /// Whether a click here would land on one of Nimbus's own windows (the island and its
+    /// panel stay on top of everything): the agent never presses its own buttons, Allow
+    /// above all. See-through windows such as the overlay are passed over, as the click
+    /// would pass through them. The web view inside a window belongs to another process,
+    /// so the top-level window is the one compared.
+    fn over_nimbus(x: i32, y: i32) -> bool {
+        unsafe {
+            let hit = WindowFromPoint(POINT { x, y });
+            if hit.is_invalid() {
+                return false;
+            }
+            let mut pid = 0u32;
+            GetWindowThreadProcessId(GetAncestor(hit, GA_ROOT), Some(&mut pid));
+            pid == std::process::id()
+        }
     }
 
     /// Real mouse and keyboard input, unless switched off for testing with the
@@ -790,6 +809,9 @@ click_spot and x, y on a grid from 0,0 (top left) to 1000,1000 (bottom right) of
         /// A real click on a spot, with the pointer put back after.
         fn click_at(&self, x: i32, y: i32, button: Button, times: usize) -> Result<(), String> {
             self.front()?;
+            if over_nimbus(x, y) {
+                return Err("that spot is covered by Nimbus's own window; Nimbus never clicks itself".into());
+            }
             let mut enigo = real_input().and_then(|_| Enigo::new(&Settings::default()).map_err(|e| e.to_string())).map_err(|e| format!("the mouse could not be used: {e}"))?;
             let back = enigo.location().ok();
             enigo.move_mouse(x, y, Coordinate::Abs).map_err(|e| e.to_string())?;

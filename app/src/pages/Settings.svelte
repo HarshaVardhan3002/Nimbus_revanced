@@ -40,10 +40,13 @@
   let searching = $state(false);
   let confirmClear = $state(false);
   let cleared = $state(false);
-  let errors = $state({ privacy: "", startup: "", chat: "", colour: "", weather: "" });
+  let errors = $state({ privacy: "", startup: "", chat: "", search: "", colour: "", weather: "" });
   let chatUrl = $state("");
   let chatKey = $state("");
   let chatSaved = $state(false);
+  let searxng = $state("");
+  let braveKey = $state("");
+  let searchSaved = $state(false);
   let clearTimer: ReturnType<typeof setTimeout> | undefined;
   let hearing = $state<Hearing | null>(null);
   let seeing = $state<{ on: boolean; pictures: number } | null>(null);
@@ -59,6 +62,8 @@
         hex = s.accent ?? "";
         chatUrl = s.chat_url ?? "";
         chatKey = s.chat_key ?? "";
+        searxng = s.search_searxng ?? "";
+        braveKey = s.search_brave_key ?? "";
       })
       .catch((e) => (errors.privacy = `Could not read the settings: ${reason(e)}.`));
     api
@@ -379,6 +384,27 @@
     }
   }
 
+  async function saveSearch(e: SubmitEvent) {
+    e.preventDefault();
+    errors.search = "";
+    const url = searxng.trim();
+    if (url && !/^https?:\/\/\S+$/i.test(url)) {
+      errors.search = "Type the address with http:// or https://, like http://127.0.0.1:8888.";
+      return;
+    }
+    try {
+      await api.searchSet(url || null, braveKey.trim() || null);
+      if (settings) {
+        settings.search_searxng = url.replace(/\/+$/, "") || null;
+        settings.search_brave_key = braveKey.trim() || null;
+      }
+      searchSaved = true;
+      setTimeout(() => (searchSaved = false), 2000);
+    } catch (err) {
+      errors.search = `Web search was not saved: ${reason(err)}.`;
+    }
+  }
+
   async function pickModel(model: string) {
     errors.chat = "";
     try {
@@ -683,6 +709,50 @@
         </div>
       </form>
       {#if errors.chat}<p class="error" role="alert">{errors.chat}</p>{/if}
+    </section>
+
+    <section class="card group" aria-labelledby="set-search">
+      {@render head("magnifying-glass", "Web search", "set-search")}
+      <div class="text">
+        <span class="meta">
+          {settings?.search_searxng
+            ? "Searches go to your SearXNG."
+            : settings?.search_brave_key
+              ? "Searches go to Brave Search."
+              : "Searches go to DuckDuckGo, which sometimes asks for a human check. A SearXNG address or a Brave Search key avoids that."}
+        </span>
+      </div>
+      <form class="server" onsubmit={saveSearch}>
+        <label class="field">
+          <Icon name="globe-simple" size={15} />
+          <input
+            bind:value={searxng}
+            use:typing
+            placeholder="SearXNG address, like http://127.0.0.1:8888"
+            aria-label="SearXNG address"
+            spellcheck="false"
+            autocomplete="off"
+          />
+        </label>
+        <label class="field">
+          <Icon name="lock-key" size={15} />
+          <input
+            bind:value={braveKey}
+            use:typing
+            type="password"
+            placeholder="Brave Search key"
+            aria-label="Brave Search key"
+            autocomplete="off"
+          />
+        </label>
+        <div class="save-row">
+          <span class="meta faint">SearXNG is used first when both are set. It needs JSON results turned on.</span>
+          <button class="btn small primary" type="submit">
+            {#if searchSaved}<Icon name="check" size={14} />Saved{:else}Save{/if}
+          </button>
+        </div>
+      </form>
+      {#if errors.search}<p class="error" role="alert">{errors.search}</p>{/if}
     </section>
   </div>
 

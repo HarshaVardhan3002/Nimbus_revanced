@@ -41,6 +41,9 @@ const MAX_FAILURES: usize = 6;
 const MAX_REPEATS: usize = 3;
 /// How long a question waits for the person before it counts as no.
 const ASK_WAIT: Duration = Duration::from_secs(120);
+/// Nobody reads a question faster than this: an earlier answer is a click or key press
+/// meant for what was on screen before, and is not taken.
+const ASK_READ: Duration = Duration::from_millis(600);
 
 #[derive(Default)]
 pub struct Session {
@@ -58,8 +61,8 @@ pub struct Agent {
     sessions: Mutex<HashMap<String, Session>>,
     /// Stop flags of the runs going on, by session.
     running: Mutex<HashMap<String, Arc<AtomicBool>>>,
-    /// Questions waiting for the person, by id.
-    asks: Mutex<HashMap<u64, Sender<bool>>>,
+    /// Questions waiting for the person, by id, with when each was asked.
+    asks: Mutex<HashMap<u64, (Sender<bool>, Instant)>>,
     next: AtomicU64,
 }
 
@@ -257,10 +260,17 @@ impl Agent {
         self.sessions.lock().remove(session);
     }
 
-    pub fn answer(&self, ask: u64, allowed: bool) {
-        if let Some(tx) = self.asks.lock().remove(&ask) {
+    /// The person's answer to a question. A "yes" within `ASK_READ` of the question is
+    /// refused, and the question keeps waiting.
+    pub fn answer(&self, ask: u64, allowed: bool) -> Result<(), String> {
+        let mut asks = self.asks.lock();
+        if allowed && asks.get(&ask).is_some_and(|(_, at)| at.elapsed() < ASK_READ) {
+            return Err("answered before it could be read".into());
+        }
+        if let Some((tx, _)) = asks.remove(&ask) {
             let _ = tx.send(allowed);
         }
+        Ok(())
     }
 
     pub fn busy(&self, session: &str) -> bool {
@@ -273,7 +283,7 @@ fn ask_person(app: &AppHandle, session: &str, run: u64, stop: &AtomicBool, title
     let agent = &app.state::<AppState>().agent;
     let id = agent.next.fetch_add(1, Ordering::Relaxed) + 1;
     let (tx, rx) = channel();
-    agent.asks.lock().insert(id, tx);
+    agent.asks.lock().insert(id, (tx, Instant::now()));
     emit(app, session, run, Event::Ask { ask: id, title: title.into(), what: what.into() });
     let began = Instant::now();
     let allowed = loop {
@@ -641,6 +651,23 @@ pub fn run_routine(app: &AppHandle, r: &Routine) {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn a_yes_before_the_question_could_be_read_is_refused() {
+        let agent = Agent::default();
+        let (tx, rx) = channel();
+        agent.asks.lock().insert(7, (tx, Instant::now()));
+        assert!(agent.answer(7, true).is_err());
+        assert!(rx.try_recv().is_err(), "the question keeps waiting");
+        // A no is always taken, at once.
+        assert!(agent.answer(7, false).is_ok());
+        assert_eq!(rx.try_recv(), Ok(false));
+
+        let (tx, rx) = channel();
+        agent.asks.lock().insert(8, (tx, Instant::now() - ASK_READ));
+        assert!(agent.answer(8, true).is_ok());
+        assert_eq!(rx.try_recv(), Ok(true));
+    }
 
     #[test]
     fn switch_off_hides_the_hands() {

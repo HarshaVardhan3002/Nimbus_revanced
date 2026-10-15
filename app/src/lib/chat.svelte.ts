@@ -111,7 +111,27 @@ export function decide(p: Extract<Part, { kind: "ask" }>, allowed: boolean) {
   p.answer = allowed;
   // Who answered shows in the console, to trace an answer nobody meant to give.
   console.info("[nimbus] answer", p.ask, allowed, new Error().stack);
-  api.agentAnswer(p.ask, allowed).catch(() => {});
+  // Refused (it came before the question could be read): the question stays on screen.
+  api.agentAnswer(p.ask, allowed).catch((e) => {
+    console.info("[nimbus] answer refused", p.ask, reason(e));
+    p.answer = null;
+  });
+}
+
+/** How long a question is on screen before its buttons take a click (as in agent/mod.rs). */
+const READ_MS = 600;
+
+/**
+ * For a question's buttons: they take clicks only after a moment on screen, so a click
+ * meant for what was there before cannot answer a question nobody has read.
+ */
+export function readFirst(node: HTMLElement) {
+  const buttons = [...node.querySelectorAll("button")];
+  for (const b of buttons) b.disabled = true;
+  const t = setTimeout(() => {
+    for (const b of buttons) b.disabled = false;
+  }, READ_MS);
+  return { destroy: () => clearTimeout(t) };
 }
 
 function lastText(t: Answer) {

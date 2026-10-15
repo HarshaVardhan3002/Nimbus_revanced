@@ -311,6 +311,7 @@ export const api = {
   brainUse: (model: string | null) => invoke<void>("brain_use", { model }),
   brainIdleSet: (minutes: number) => invoke<void>("brain_idle_set", { minutes }),
   speechLanguageSet: (language: string | null) => invoke<void>("speech_language_set", { language }),
+  searchSet: (searxng: string | null, braveKey: string | null) => invoke<void>("search_set", { searxng, braveKey }),
   brainSetup: () => invoke<void>("brain_setup"),
   brainStopSetup: () => invoke<void>("brain_stop_setup"),
   brainOpenFolder: () => invoke<void>("brain_open_folder"),

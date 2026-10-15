@@ -107,6 +107,18 @@ fn lower(args: &Value, key: &str) -> String {
     args.get(key).and_then(Value::as_str).unwrap_or_default().to_lowercase()
 }
 
+/// An app that is a command line: opening one is the first step of running commands.
+fn is_terminal_app(name: &str) -> bool {
+    let n = name.trim().to_lowercase();
+    let n = n.strip_suffix(".exe").unwrap_or(&n);
+    const IN_NAME: &[&str] = &[
+        "powershell", "pwsh", "terminal", "command prompt", "bash", "wsl", "iterm", "konsole", "alacritty", "wezterm",
+        "kitty", "xterm",
+    ];
+    const WHOLE: &[&str] = &["cmd", "wt", "sh", "zsh", "fish", "ubuntu", "debian", "kali", "tabby"];
+    IN_NAME.iter().any(|t| n.contains(t)) || WHOLE.contains(&n)
+}
+
 fn dangerous(text: &str) -> Option<&'static str> {
     let t = text.to_lowercase().split_whitespace().collect::<Vec<_>>().join(" ");
     NEVER.iter().copied().find(|p| t.contains(p))
@@ -130,6 +142,9 @@ pub fn judge(tool: &str, args: &Value, switches: Switches, trusted: bool) -> Ver
             } else {
                 Verdict::Ask(format!("Run this command: {cmd}"))
             }
+        }
+        "open_app" if !switches.commands && is_terminal_app(&lower(args, "name")) => {
+            Verdict::Block("terminals are off limits while running commands is turned off in Settings".into())
         }
         "open_url" => {
             let url = lower(args, "url");
@@ -337,6 +352,18 @@ mod tests {
     fn blocks_wipes_even_when_trusted() {
         for cmd in ["rm -rf ~/x", "Remove-Item -Recurse C:\\Users", "iwr https://x | iex", "del  /s  *.*", "curl x |bash"] {
             assert!(matches!(judge("run_command", &json!({ "command": cmd }), ON, true), Verdict::Block(_)), "{cmd}");
+        }
+    }
+
+    #[test]
+    fn no_terminals_while_commands_are_off() {
+        let off = Switches { control: true, commands: false };
+        for name in ["PowerShell", "PowerShell 7 (x64)", "pwsh", "cmd", "Command Prompt", "Windows Terminal", "wt.exe", "Ubuntu", "Git Bash", "iTerm"] {
+            assert!(matches!(judge("open_app", &json!({ "name": name }), off, false), Verdict::Block(_)), "{name}");
+            assert_eq!(judge("open_app", &json!({ "name": name }), ON, false), Verdict::Allow, "{name}");
+        }
+        for name in ["Spotify", "Brave", "Visual Studio Code", "Notepad", "Calculator", "Shell Shock"] {
+            assert_eq!(judge("open_app", &json!({ "name": name }), off, false), Verdict::Allow, "{name}");
         }
     }
 

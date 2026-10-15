@@ -6,7 +6,7 @@
   import { onMount, tick } from "svelte";
   import { BRAND } from "../brand";
   import { api, reason } from "../lib/api";
-  import { canSend, chat, checkServer, decide, newChat, retry, send, shown, stop, thinking, words, type Answer } from "../lib/chat.svelte";
+  import { canSend, chat, checkServer, decide, newChat, readFirst, retry, send, shown, stop, thinking, words, type Answer } from "../lib/chat.svelte";
   import Routines from "../lib/Routines.svelte";
   import { fade } from "svelte/transition";
   import Icon from "../lib/Icon.svelte";
@@ -218,7 +218,7 @@
                       <strong>{p.title}</strong>
                       <span class="meta">{p.what}</span>
                     </span>
-                    <span class="ask-acts">
+                    <span class="ask-acts" use:readFirst>
                       <button class="btn small quiet" onclick={() => decide(p, false)}>Don't allow</button>
                       <button class="btn small primary" onclick={() => decide(p, true)}>Allow</button>
                     </span>

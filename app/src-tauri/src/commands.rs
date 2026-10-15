@@ -361,9 +361,15 @@ pub fn notice_answer(id: String, button: String) {
 
 /// The person's answer to a question the agent asked.
 #[tauri::command]
-pub fn agent_answer(ask: u64, allowed: bool, window: tauri::Window, state: State<'_, AppState>) {
-    eprintln!("[nimbus] ask {ask} answered {} in the {} window", if allowed { "yes" } else { "no" }, window.label());
-    state.agent.answer(ask, allowed);
+pub fn agent_answer(ask: u64, allowed: bool, window: tauri::Window, state: State<'_, AppState>) -> Res<()> {
+    let taken = state.agent.answer(ask, allowed);
+    eprintln!(
+        "[nimbus] ask {ask} answered {} in the {} window{}",
+        if allowed { "yes" } else { "no" },
+        window.label(),
+        taken.as_ref().err().map(|e| format!(", refused: {e}")).unwrap_or_default()
+    );
+    taken
 }
 
 // ---- to-dos and routines ----
@@ -487,6 +493,22 @@ pub fn brain_idle_set(app: AppHandle, state: State<'_, AppState>, minutes: u32) 
 pub fn speech_language_set(app: AppHandle, state: State<'_, AppState>, language: Option<String>) -> Res<()> {
     let mut s = state.settings.lock();
     s.speech_language = language.filter(|l| !l.trim().is_empty());
+    settings::save(&app, &s)?;
+    Ok(())
+}
+
+/// Where web searches go: a SearXNG address, a Brave Search key, or neither (DuckDuckGo).
+#[tauri::command]
+pub fn search_set(app: AppHandle, state: State<'_, AppState>, searxng: Option<String>, brave_key: Option<String>) -> Res<()> {
+    let searxng = searxng.map(|s| s.trim().trim_end_matches('/').to_string()).filter(|s| !s.is_empty());
+    if let Some(url) = &searxng {
+        if !(url.starts_with("http://") || url.starts_with("https://")) {
+            return Err("type the address with http:// or https://".into());
+        }
+    }
+    let mut s = state.settings.lock();
+    s.search_searxng = searxng;
+    s.search_brave_key = brave_key.map(|k| k.trim().to_string()).filter(|k| !k.is_empty());
     settings::save(&app, &s)?;
     Ok(())
 }

@@ -346,6 +346,7 @@ pub fn run() {
             commands::brain_use,
             commands::brain_idle_set,
             commands::speech_language_set,
+            commands::search_set,
             commands::brain_setup,
             commands::brain_stop_setup,
             commands::brain_open_folder,
